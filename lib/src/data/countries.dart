@@ -24,7 +24,6 @@ class CountriesData {
   /// Looks up a [Country] by its international [dialCode].
   static Country fromDialCode(String dialCode) => Country.fromDialCode(dialCode);
 
-
   /// Filters all countries matching [query] against name, ISO code, or dial code.
   static List<Country> search(String query) => Country.search(query);
 
@@ -41,8 +40,8 @@ class CountriesData {
     Country(name: 'Armenia', isoCode: 'AM', dialCode: '+374', flag: '🇦🇲', minLength: 8, maxLength: 8),
     Country(name: 'Aruba', isoCode: 'AW', dialCode: '+297', flag: '🇦🇼', minLength: 7, maxLength: 7),
     Country(name: 'Ascension Island', isoCode: 'AC', dialCode: '+247', flag: '🇦🇨', minLength: 4, maxLength: 5),
-    Country(name: 'Australia', isoCode: 'AU', dialCode: '+61', flag: '🇦🇺', minLength: 9, maxLength: 9),
-    Country(name: 'Austria', isoCode: 'AT', dialCode: '+43', flag: '🇦🇹', minLength: 7, maxLength: 13),
+    Country(name: 'Australia', isoCode: 'AU', dialCode: '+61', flag: '🇦🇺', minLength: 9, maxLength: 10),
+    Country(name: 'Austria', isoCode: 'AT', dialCode: '+43', flag: '🇦🇹', minLength: 10, maxLength: 13),
     Country(name: 'Azerbaijan', isoCode: 'AZ', dialCode: '+994', flag: '🇦🇿', minLength: 9, maxLength: 9),
     Country(name: 'Bahamas', isoCode: 'BS', dialCode: '+1', flag: '🇧🇸', minLength: 10, maxLength: 10),
     Country(name: 'Bahrain', isoCode: 'BH', dialCode: '+973', flag: '🇧🇭', minLength: 8, maxLength: 8),
