@@ -232,25 +232,30 @@ void main() {
         expect(PhoneValidator.isValid(Country.japan, '901234'), isFalse);
       });
 
-      test('validates Austria mobile numbers (7 to 13 digits)', () {
+      test('validates Austria mobile numbers (10 to 13 digits)', () {
         final austria = Country.austria;
-        expect(austria.minLength, 7);
+        expect(austria.minLength, 10);
         expect(austria.maxLength, 13);
 
         // Can also lookup via CountriesData
         final austriaFromData = CountriesData.fromIsoCode('AT');
         expect(austriaFromData.isoCode, 'AT');
-        expect(austriaFromData.minLength, 7);
+        expect(austriaFromData.minLength, 10);
         expect(austriaFromData.maxLength, 13);
 
-        // Valid mobile lengths between minLength (7) and maxLength (13)
-        expect(PhoneValidator.isLengthValid(austria, '6501234'), isTrue);
-        expect(PhoneValidator.isValid(austria, '6501234'), isTrue);
+        // Valid mobile lengths between minLength (10) and maxLength (13)
+        expect(PhoneValidator.isLengthValid(austria, '9876543210'), isTrue);
         expect(PhoneValidator.isValid(austria, '9876543210'), isTrue);
         expect(PhoneValidator.isValid(austria, '6641234567'), isTrue);
         expect(PhoneValidator.isValid(austria, '1234567890123'), isTrue);
 
-        // Incomplete (< 7 digits)
+        // Incomplete (< 10 digits)
+        expect(PhoneValidator.isLengthValid(austria, '6501234'), isFalse);
+        expect(PhoneValidator.isValid(austria, '6501234'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(austria, '6501234'),
+          PhoneValidationError.tooShort,
+        );
         expect(PhoneValidator.isLengthValid(austria, '1234'), isFalse);
         expect(PhoneValidator.isValid(austria, '1234'), isFalse);
         expect(

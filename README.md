@@ -1,45 +1,64 @@
 # PhoneAtlas
 
-A production-quality, lightweight Flutter/Dart package for international phone number input, country selection, Unicode flags, country-specific formatting, and authoritative validation powered by the Google libphonenumber ecosystem.
+A production-quality, lightweight Flutter package for international phone number input, country selection, Unicode flags, as-you-type formatting, and metadata-driven phone number validation powered by the Google libphonenumber ecosystem.
 
-[![pub package](https://img.shields.io/badge/pub-0.1.0-blue.svg)](https://pub.dev)
-[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Flutter](https://img.shields.io/badge/flutter->=3.16.0-02569B.svg?logo=flutter)](https://flutter.dev)
+[![pub package](https://img.shields.io/pub/v/phoneatlas.svg)](https://pub.dev/packages/phoneatlas)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Flutter](https://img.shields.io/badge/Flutter-%3E%3D3.16.0-02569B.svg?logo=flutter)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-%5E3.13.1-0175C2.svg?logo=dart)](https://dart.dev)
 
 ---
 
 ## Features
 
-- 🌍 **245+ Countries & Territories**: Complete ISO 3166-1 alpha-2 coverage with English canonical names and dialing codes.
-- 🇮🇳 **Unicode Flag Emojis**: Lightweight, asset-free Unicode flag emojis generated dynamically from ISO country codes.
-- 📱 **Real-Time As-You-Type Formatting**: Formats phone numbers smoothly in local national format while accurately preserving the cursor position.
-- 🛡️ **Authoritative Validation**: Backed by Google libphonenumber metadata rather than arbitrary length heuristics. Correctly handles variable-length countries (e.g. Germany) and mobile prefix rules.
-- 🌐 **E.164 & International Output**: Exposes verified E.164 international phone number strings (e.g. `+919876543210`) only when valid.
-- 📋 **Seamless Flutter Form Integration**: First-class `FormField<PhoneNumberValue>` support with `validate()`, `reset()`, and customizable error messaging.
-- 🔍 **Performant Country Picker**: Modal bottom sheet and dialog with instant fuzzy search (by name, ISO code, or dial code) powered by lazy `ListView.builder` rendering.
-- 🎮 **Lightweight Controller**: `PhoneAtlasController` for two-way programmatic control, clearing, setting raw numbers, or listening to updates.
-- ♿ **Accessibility & Theming**: Native Material 3 styling, full Dark/Light theme support, and accessible semantics with adequate tap targets (>= 48dp).
-- 🛠️ **Reproducible Metadata**: Deterministic generator script (`tool/generate_phone_metadata.dart`) for easy ongoing metadata maintenance.
+- 🌍 **245+ Countries & Territories**: Comprehensive coverage with ISO 3166-1 alpha-2 codes, international dial codes, and canonical English names.
+- 🇮🇳 **Zero-Asset Unicode Flag Emojis**: Lightweight flags generated dynamically from regional indicator symbols without bundled asset bloat.
+- 🔝 **Smart Country Picker**: Modal bottom sheet and center dialog with instant fuzzy search (name, ISO code, dial code). The currently selected country is automatically pinned to the top with a distinct border, background, and checkmark.
+- 📱 **As-You-Type National Formatting**: Automatically formats phone numbers according to national standards while preserving cursor position.
+- 🛡️ **Authoritative Validation**: Validates National Significant Number (NSN) lengths and patterns backed by Google's libphonenumber ecosystem. Accurately validates fixed-length and variable-length mobile numbers (e.g., Austria, Germany).
+- ⚙️ **Dual-Mode Validation (`isValidate`)**:
+  - `isValidate: true` (default): Strictly enforces phone number length and format rules, providing inline form error feedback.
+  - `isValidate: false`: Functions as an open phone/text field without validation errors while retaining flag, dial code, and country picker features.
+- 📋 **Seamless Flutter `Form` Integration**: Extends `FormField<PhoneNumberValue>` with built-in support for `validate()`, `reset()`, `onSaved`, and custom validators.
+- 🎮 **Two-Way Controller**: `PhoneAtlasController` provides complete programmatic control to inspect, update, reset, or set raw E.164 strings.
+- ♿ **Responsive & Accessible**: Native Material 3 theming (light & dark mode), adaptive `LayoutBuilder` sizing for compact and large screens, and semantic screen reader labels.
 
 ---
 
-## Core Concept & Flow
+## Architecture & Flow
 
 ```text
-🌍 Country Selection
-         ↓
-🇮🇳 Unicode Flag Emoji
-         ↓
-+91 International Dial Code
-         ↓
-📱 Phone Input Field
-         ↓
-Country-Specific As-You-Type Formatting  (e.g., 98765 43210)
-         ↓
-Google libphonenumber Metadata Validation
-         ↓
-Validated E.164 Output                   (e.g., +919876543210)
+┌────────────────────────────────────────────────────────┐
+│                   PhoneAtlasField                      │
+├─────────────────────┬──────────────────────────────────┤
+│ 🇮🇳 +91 ▼            │ 98765 43210                      │
+│ Flag & Prefix Button│ As-You-Type National Formatting  │
+└──────────┬──────────┴─────────────────┬────────────────┘
+           │ (tap)                      │ (input)
+           ▼                            ▼
+┌─────────────────────────┐  ┌───────────────────────────┐
+│  Smart Country Picker   │  │   libphonenumber Rules    │
+│  - Selected pinned top  │  │   - Valid NSN length      │
+│  - Instant fuzzy search │  │   - Mobile prefix checks  │
+│  - Responsive sheet/dlg │  └─────────────┬─────────────┘
+└─────────────────────────┘                │
+                                           ▼
+                             ┌───────────────────────────┐
+                             │    PhoneNumberValue       │
+                             │    - country: India       │
+                             │    - national: 9876543210 │
+                             │    - e164: +919876543210  │
+                             │    - isValid: true        │
+                             └───────────────────────────┘
 ```
+
+---
+
+## Compatibility
+
+- **Flutter**: `>= 3.16.0`
+- **Dart SDK**: `^3.13.1`
+- **Design System**: Material Design 3
 
 ---
 
@@ -52,7 +71,7 @@ dependencies:
   phoneatlas: ^0.1.0
 ```
 
-Import it in your Dart code:
+Then import the package in your Dart code:
 
 ```dart
 import 'package:phoneatlas/phoneatlas.dart';
@@ -60,241 +79,353 @@ import 'package:phoneatlas/phoneatlas.dart';
 
 ---
 
-## Quick Start
+## Usage Examples
 
-### Basic Usage
+### 1. Basic Usage
+
+A minimal standalone phone field with default validation and country selection:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:phoneatlas/phoneatlas.dart';
 
-class SimplePhoneExample extends StatelessWidget {
-  const SimplePhoneExample({super.key});
+class BasicPhoneExample extends StatelessWidget {
+  const BasicPhoneExample({super.key});
 
   @override
   Widget build(BuildContext context) {
     return PhoneAtlasField(
-      initialCountry: Country.india,
-      onChanged: (phone) {
-        debugPrint('Country: ${phone.country.name}');
-        debugPrint('Flag: ${phone.country.flag}');
-        debugPrint('Dial code: ${phone.dialCode}');
-        debugPrint('National: ${phone.nationalNumber}');
-        debugPrint('International: ${phone.internationalNumber}');
-        debugPrint('Valid: ${phone.isValid}');
+      initialCountry: Country.unitedStates,
+      onChanged: (PhoneNumberValue value) {
+        debugPrint('Country: ${value.country.name}');
+        debugPrint('National: ${value.nationalNumber}');
+        debugPrint('International E.164: ${value.internationalNumber}');
+        debugPrint('Is valid: ${value.isValid}');
       },
     );
   }
 }
 ```
 
-### Optional Phone Validation (`isValidate`)
+---
 
-Validation can be toggled on or off using `isValidate`:
+### 2. Flutter Form Validation
+
+Use `PhoneAtlasField` inside a Flutter `Form` to handle form submission, inline error messages, and form resets:
 
 ```dart
-// Standard validated phone input (default)
-PhoneAtlasField(
-  isValidate: true,
-  ...
-);
+import 'package:flutter/material.dart';
+import 'package:phoneatlas/phoneatlas.dart';
 
-// Normal phone/text input without validation errors
-PhoneAtlasField(
-  isValidate: false,
-  ...
-);
+class FormValidationExample extends StatefulWidget {
+  const FormValidationExample({super.key});
+
+  @override
+  State<FormValidationExample> createState() => _FormValidationExampleState();
+}
+
+class _FormValidationExampleState extends State<FormValidationExample> {
+  final _formKey = GlobalKey<FormState>();
+  PhoneNumberValue? _savedValue;
+
+  void _submit() {
+    if (_formKey.currentState?.validate() ?? false) {
+      _formKey.currentState?.save();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Saved: ${_savedValue?.internationalNumber}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          PhoneAtlasField(
+            initialCountry: Country.india,
+            decoration: const InputDecoration(
+              labelText: 'Mobile Number',
+              hintText: 'Enter 10-digit number',
+              border: OutlineInputBorder(),
+            ),
+            // Use PhoneValidator helper or a custom validator callback
+            validator: PhoneValidator.valid(
+              invalidMessage: 'Please enter a valid mobile number',
+            ),
+            onSaved: (value) {
+              _savedValue = value;
+            },
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _submit,
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 ```
-
-* **When `isValidate: true` (default)**: Uses country-specific phone metadata, applies validation rules, and displays validation errors if the number is invalid.
-* **When `isValidate: false`**: Bypasses phone validation rules and suppresses validation errors, while keeping the country selector, flag, dial code, and input length limits intact.
 
 ---
 
-## Flutter Form Integration
+### 3. Programmatic Control with `PhoneAtlasController`
 
-`PhoneAtlasField` extends Flutter's `FormField<PhoneNumberValue>`, providing complete integration with `FormState`:
+Use `PhoneAtlasController` to read, modify, or reset phone field values programmatically. Always remember to dispose the controller in your State's `dispose()` method.
 
 ```dart
-final formKey = GlobalKey<FormState>();
+import 'package:flutter/material.dart';
+import 'package:phoneatlas/phoneatlas.dart';
 
-Form(
-  key: formKey,
-  child: Column(
-    children: [
-      PhoneAtlasField(
-        initialCountry: Country.unitedStates,
-        decoration: const InputDecoration(
-          labelText: 'Phone Number',
-          border: OutlineInputBorder(),
+class ControllerExample extends StatefulWidget {
+  const ControllerExample({super.key});
+
+  @override
+  State<ControllerExample> createState() => _ControllerExampleState();
+}
+
+class _ControllerExampleState extends State<ControllerExample> {
+  late final PhoneAtlasController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with a country and optional initial digits
+    _controller = PhoneAtlasController.fromCountry(Country.india, '9876543210');
+  }
+
+  @override
+  void dispose() {
+    // Controller must be disposed when no longer needed
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        PhoneAtlasField(
+          controller: _controller,
+          onCountryChanged: (Country country) {
+            debugPrint('Country changed to: ${country.name}');
+          },
         ),
-        validator: PhoneValidator.valid(
-          invalidMessage: 'Please enter a valid phone number',
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: [
+            ElevatedButton(
+              onPressed: () => _controller.setCountry(Country.unitedKingdom),
+              child: const Text('Switch to UK'),
+            ),
+            ElevatedButton(
+              onPressed: () => _controller.setRaw('+12025550123'),
+              child: const Text('Set US E.164 (+12025550123)'),
+            ),
+            OutlinedButton(
+              onPressed: () => _controller.clear(),
+              child: const Text('Clear'),
+            ),
+          ],
         ),
-        onSaved: (phone) {
-          debugPrint('Saved: ${phone?.internationalNumber}');
-        },
-      ),
-      const SizedBox(height: 16),
-      ElevatedButton(
-        onPressed: () {
-          if (formKey.currentState!.validate()) {
-            formKey.currentState!.save();
-          }
-        },
-        child: const Text('Submit'),
-      ),
-    ],
-  ),
+      ],
+    );
+  }
+}
+```
+
+---
+
+### 4. Optional Phone Validation (`isValidate`)
+
+Control validation behavior using the `isValidate` flag:
+
+```dart
+// 1. Standard Validated Mode (default: isValidate: true)
+PhoneAtlasField(
+  isValidate: true,
+  // Enforces valid mobile length and pattern. Displays error on form validation.
+)
+
+// 2. Open / Free-Form Input Mode (isValidate: false)
+PhoneAtlasField(
+  isValidate: false,
+  // Bypasses validation errors. Allows free-form digits while
+  // keeping the country flag, dial code, and picker intact.
 )
 ```
 
----
-
-## Programmatic Control with `PhoneAtlasController`
-
-Use `PhoneAtlasController` to read, update, or clear the phone value programmatically:
-
-```dart
-final controller = PhoneAtlasController.fromCountry(
-  Country.india,
-  '9876543210',
-);
-
-// Listen to value updates
-controller.addListener(() {
-  final current = controller.value;
-  debugPrint('E.164: ${current.internationalNumber}, Valid: ${current.isValid}');
-});
-
-// Programmatically switch country
-controller.setCountry(Country.unitedStates);
-
-// Programmatically set national digits
-controller.setNationalNumber('2025550123');
-
-// Auto-detect country from full international raw string
-controller.setRaw('+447400123456');
-
-// Clear the input
-controller.clear();
-```
+| Behavior | `isValidate: true` (default) | `isValidate: false` |
+|---|---|---|
+| **Validation Rules** | Enforces libphonenumber constraints | Bypassed |
+| **Form Error Messages** | Displayed when invalid | Suppressed |
+| **E.164 Output** | Formatted string when valid | Normalized string available |
+| **Country Flag & Dial Code** | Fully active | Fully active |
+| **As-You-Type Formatting** | Active | Active |
 
 ---
 
-## Standalone Country Pickers
+### 5. Standalone Country Picker
 
-You can invoke the country picker modal bottom sheet or dialog anywhere in your application:
+You can open the country picker modal directly anywhere in your application:
 
 ```dart
-// 1. Bottom Sheet
-final country = await showCountryPickerSheet(
+// Open as a Modal Bottom Sheet
+final Country? pickedCountry = await showCountryPickerSheet(
   context,
-  selectedCountry: Country.india,
+  selectedCountry: Country.germany,
   themeData: const CountryPickerThemeData(
-    title: 'Select Your Country',
+    title: 'Select Destination Country',
     showDialCode: true,
   ),
 );
 
-// 2. Alert Dialog
-final countryDialog = await showCountryPickerDialog(
+// Open as an Alert Dialog
+final Country? dialogCountry = await showCountryPickerDialog(
   context,
-  selectedCountry: Country.unitedStates,
+  selectedCountry: Country.japan,
 );
 ```
 
 ---
 
-## Models & APIs
+## API Reference
 
-### `Country`
+### `PhoneAtlasField`
 
-| Property | Type | Description |
-|---|---|---|
-| `name` | `String` | Canonical English country name (e.g., `'India'`) |
-| `isoCode` | `String` | Two-letter ISO 3166-1 alpha-2 code (e.g., `'IN'`) |
-| `dialCode` | `String` | International dialing code (e.g., `'+91'`) |
-| `flag` | `String` | Regional indicator Unicode emoji (e.g., `'🇮🇳'`) |
-| `minLength` | `int` | Minimum possible national length for the country |
-| `maxLength` | `int` | Maximum possible national length for the country |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `controller` | `PhoneAtlasController?` | `null` | Controller for two-way programmatic manipulation. |
+| `initialCountry` | `Country?` | `Country.unitedStates` | Country displayed initially if controller is unset. |
+| `initialValue` | `PhoneNumberValue?` | `null` | Initial value if controller is unset. |
+| `isValidate` | `bool` | `true` | Whether to validate against country metadata and display errors. |
+| `onChanged` | `ValueChanged<PhoneNumberValue>?` | `null` | Callback invoked when the phone number changes. |
+| `onCountryChanged` | `ValueChanged<Country>?` | `null` | Callback invoked when the selected country changes. |
+| `decoration` | `InputDecoration?` | `null` | Decoration for the inner `TextField`. |
+| `style` | `TextStyle?` | `null` | Text style for the input digits. |
+| `enableFormatting` | `bool` | `true` | Whether to format digits according to national standards. |
+| `pickerMode` | `CountryPickerMode` | `.bottomSheet` | Picker presentation mode (`.bottomSheet` or `.dialog`). |
+| `countryPickerTheme` | `CountryPickerThemeData?` | `null` | Custom styling for the country picker modal. |
+| `countries` | `List<Country>?` | `null` | Custom list of countries to restrict the picker to. |
+| `showFlag` | `bool` | `true` | Whether to display the flag emoji in the prefix button. |
+| `showCountryName` | `bool` | `false` | Whether to display the country name in the prefix button. |
+| `showIsoCode` | `bool` | `false` | Whether to display the ISO alpha-2 code in the prefix button. |
+| `showDialCode` | `bool` | `true` | Whether to display the dial code (e.g., `+1`) in the prefix button. |
+| `showDropdownIcon` | `bool` | `true` | Whether to display the arrow drop-down icon in the prefix button. |
+| `flagSize` | `double` | `20.0` | Font size of the Unicode flag emoji. |
+| `dialCodeStyle` | `TextStyle?` | `null` | Custom text style for the prefix dial code. |
+| `enabled` | `bool` | `true` | Whether the field is interactive. |
+| `readOnly` | `bool` | `false` | Whether the text field is read-only. |
+| `validator` | `FormFieldValidator<PhoneNumberValue>?` | `null` | Form field validator function. |
+| `autovalidateMode` | `AutovalidateMode?` | `null` | Autovalidation mode for the form field. |
+| `onSaved` | `FormFieldSetter<PhoneNumberValue>?` | `null` | Callback when enclosing `FormState.save()` is called. |
 
-Convenience getters & helpers:
-- `Country.all`: Complete list of 245+ countries.
-- `Country.india`, `Country.unitedStates`, `Country.unitedKingdom`, `Country.germany`, `Country.japan`, etc.
-- `Country.fromIsoCode('IN')` / `Country.tryFromIsoCode('US')`
-- `Country.fromDialCode('+91')` / `Country.tryFromDialCode('+1')`
-- `Country.search('query')`
+---
+
+### `PhoneAtlasController`
+
+| Method / Getter | Description |
+|---|---|
+| `PhoneAtlasController([PhoneNumberValue? value])` | Creates a controller with an optional initial value. |
+| `PhoneAtlasController.fromCountry(Country country, [String nationalNumber = ''])` | Creates a controller initialized with a country and digits. |
+| `value` | Current `PhoneNumberValue`. |
+| `country` | Currently selected `Country`. |
+| `nationalNumber` | Current national digits. |
+| `dialCode` | Current country dialing code (e.g., `+91`). |
+| `internationalNumber` | E.164 string when valid, or empty string. |
+| `isValid` | Whether current value passes validation rules. |
+| `setPhoneNumber(Country country, String nationalNumber)` | Updates both country and national number. |
+| `setCountry(Country country)` | Updates country while retaining existing digits. |
+| `setNationalNumber(String digits)` | Updates national digits. |
+| `setRaw(String rawE164)` | Auto-detects country code and parses digits from full string. |
+| `clear()` | Clears the national digits. |
+| `dispose()` | Disposes internal listeners. |
+
+---
 
 ### `PhoneNumberValue`
 
 | Property | Type | Description |
 |---|---|---|
-| `country` | `Country` | Selected country model |
-| `nationalNumber` | `String` | Sanitized national digits (e.g., `'9876543210'`) |
-| `dialCode` | `String` | Dialing code prefix (e.g., `'+91'`) |
-| `internationalNumber` | `String` | Normalized E.164 string if valid (e.g., `'+919876543210'`), empty if invalid |
-| `e164` | `String?` | E.164 string when valid, or `null` if invalid |
-| `formattedNationalNumber`| `String?` | National formatting (e.g., `'(202) 555-0123'`, `'98765 43210'`) |
-| `isValid` | `bool` | Whether the number is valid according to libphonenumber rules |
-| `isEmpty` / `isNotEmpty` | `bool` | Convenience state getters |
+| `country` | `Country` | The associated country model. |
+| `nationalNumber` | `String` | Raw sanitized national digits (e.g., `'9876543210'`). |
+| `dialCode` | `String` | International calling code prefix (e.g., `'+91'`). |
+| `internationalNumber` | `String` | Formatted E.164 string when valid (e.g., `'+919876543210'`). |
+| `e164` | `String?` | Standard E.164 string when valid, or `null`. |
+| `formattedNationalNumber` | `String?` | National format string (e.g., `'(202) 555-0123'`). |
+| `isValid` | `bool` | Whether the number satisfies libphonenumber metadata rules. |
+| `lengthValid` | `bool` | Whether the number length satisfies country mobile NSN limits. |
+| `validationError` | `PhoneValidationError?` | Specific validation failure error (or `null` if valid). |
+| `isEmpty` / `isNotEmpty` | `bool` | Convenience state helpers. |
 
 ---
 
-## Phone Number Metadata & Generation
+### `Country`
 
-PhoneAtlas relies on authoritative metadata from Google's [libphonenumber](https://github.com/google/libphonenumber) project. Validation and formatting rules are not hand-crafted or AI-generated.
+| Property | Type | Description |
+|---|---|---|
+| `name` | `String` | Canonical English country name (e.g., `'India'`). |
+| `isoCode` | `String` | ISO 3166-1 alpha-2 code (e.g., `'IN'`). |
+| `dialCode` | `String` | International dialing code (e.g., `'+91'`). |
+| `flag` | `String` | Unicode regional indicator flag emoji (e.g., `'🇮🇳'`). |
+| `minLength` | `int` | Minimum mobile national significant number (NSN) length. |
+| `maxLength` | `int` | Maximum mobile national significant number (NSN) length. |
 
-### Updating Metadata
-
-To regenerate the country metadata deterministically:
-
-```bash
-dart run tool/generate_phone_metadata.dart
-```
-
-This updates `lib/src/data/countries.dart` with the latest ISO specifications, dialing codes, and min/max length parameters.
-
----
-
-## Running the Example App
-
-The package includes a comprehensive showcase application in `example/`:
-
-```bash
-cd example
-flutter run
-```
-
-Features demonstrated:
-- Form field with validation and submission.
-- Real-time parsed value inspector.
-- Programmatic controller manipulation.
-- Custom field styling with pill shapes and filled decorations.
-- Standalone bottom sheet and dialog pickers.
-- Dark mode toggle.
+#### Helper Methods:
+- `Country.all`: Full list of 245+ countries.
+- `Country.fromIsoCode('IN')` / `Country.tryFromIsoCode('US')`: Lookup by ISO alpha-2.
+- `Country.fromDialCode('+91')` / `Country.tryFromDialCode('+1')`: Lookup by dialing code.
+- `Country.search('query')`: Fuzzy search across names, ISO codes, and dial codes.
+- `Country.india`, `Country.unitedStates`, `Country.unitedKingdom`, `Country.germany`, `Country.japan`, `Country.austria`, `Country.australia`, `Country.brazil`: Built-in constants.
 
 ---
 
-## Testing
+### `CountryPickerThemeData`
 
-Run the test suite with:
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `title` | `String` | `'Select Country'` | Title text at top of picker. |
+| `searchHint` | `String` | `'Search country, ISO, or dial code...'` | Search field placeholder. |
+| `noResultsText` | `String` | `'No countries found'` | Text when search finds no matches. |
+| `showDialCode` | `bool` | `true` | Whether to display dial codes in picker tiles. |
+| `showIsoCode` | `bool` | `false` | Whether to display ISO codes in picker tiles. |
+| `flagSize` | `double` | `24.0` | Flag emoji font size in list tiles. |
+| `backgroundColor` | `Color?` | `null` | Custom background color for the modal. |
+| `borderRadius` | `BorderRadius?` | `null` | Custom border radius for the modal. |
+| `searchInputBorder` | `InputBorder?` | `null` | Custom border for search field. |
+| `selectedItemBackgroundColor` | `Color?` | `null` | Custom background color for pinned selected item. |
+| `selectedItemBorder` | `Border?` | `null` | Custom border for pinned selected item. |
 
-```bash
-flutter test
-```
+---
 
-The test suite covers:
-- Country lookup and case-insensitive resolution.
-- Dynamic flag generation from ISO codes.
-- Real-time phone formatting and cursor position integrity.
-- Validation across diverse international patterns (India, US, UK, Germany, Brazil).
-- Flutter Form validation, submission, and reset.
-- Controller synchronization and country switching.
-- Country picker search and lazy scrolling.
+## Common Usage Mistakes & Troubleshooting
+
+1. **Forgetting to dispose `PhoneAtlasController`**:
+   - Always call `controller.dispose()` inside your `State.dispose()` method to prevent memory leaks.
+2. **Passing both `controller` and `initialValue`**:
+   - If a `controller` is provided, it serves as the single source of truth. Passing both will ignore `initialValue`.
+3. **Confusing validation with carrier reachability**:
+   - Metadata validation confirms that a number satisfies national numbering plan length, format, and mobile prefix specifications. It does not ping cellular towers or verify whether a SIM card is active.
+4. **Expecting `internationalNumber` on invalid input**:
+   - `value.internationalNumber` returns an empty string (and `value.e164` returns `null`) when the phone number is invalid. Use `value.isValid` to check validity before reading E.164 strings.
+
+---
+
+## Contributing & Issues
+
+Contributions, bug reports, and suggestions are welcome!
+- Please file issues and feature requests at [GitHub Issues](https://github.com/jpatel62562-sys/phoneatlas/issues).
+- Pull requests should include unit or widget test coverage and pass `flutter analyze`.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This package is licensed under the [MIT License](LICENSE).

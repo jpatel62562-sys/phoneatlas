@@ -104,7 +104,7 @@ class Country implements Comparable<Country> {
     dialCode: '+61',
     flag: '🇦🇺',
     minLength: 9,
-    maxLength: 9,
+    maxLength: 10,
   );
 
   /// Well-known country constant: Germany (+49).
@@ -123,7 +123,7 @@ class Country implements Comparable<Country> {
     isoCode: 'AT',
     dialCode: '+43',
     flag: '🇦🇹',
-    minLength: 7,
+    minLength: 10,
     maxLength: 13,
   );
 
