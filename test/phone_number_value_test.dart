@@ -138,5 +138,67 @@ void main() {
       expect(val1, equals(val2));
       expect(val1.hashCode, equals(val2.hashCode));
     });
+
+    test('validates length dynamically for variable-length country (minLength: 8, maxLength: 12)', () {
+      const variableCountry = Country(
+        name: 'Custom Variable',
+        isoCode: 'CVAR',
+        dialCode: '+999',
+        flag: '🏳️',
+        minLength: 8,
+        maxLength: 12,
+      );
+
+      // 7 digits (below minLength)
+      final v7 = PhoneNumberValue.parse(country: variableCountry, nationalNumber: '1234567');
+      expect(v7.isLengthValid, isFalse);
+      expect(v7.isValid, isFalse);
+
+      // 8 digits (minimum boundary)
+      final v8 = PhoneNumberValue.parse(country: variableCountry, nationalNumber: '12345678');
+      expect(v8.isLengthValid, isTrue);
+      expect(v8.isValid, isTrue);
+
+      // 10 digits (within range)
+      final v10 = PhoneNumberValue.parse(country: variableCountry, nationalNumber: '1234567890');
+      expect(v10.isLengthValid, isTrue);
+      expect(v10.isValid, isTrue);
+
+      // 12 digits (maximum boundary)
+      final v12 = PhoneNumberValue.parse(country: variableCountry, nationalNumber: '123456789012');
+      expect(v12.isLengthValid, isTrue);
+      expect(v12.isValid, isTrue);
+
+      // 13 digits (above maxLength)
+      final v13 = PhoneNumberValue.parse(country: variableCountry, nationalNumber: '1234567890123');
+      expect(v13.isLengthValid, isFalse);
+      expect(v13.isValid, isFalse);
+    });
+
+    test('validates length dynamically for fixed-length country (minLength: 10, maxLength: 10)', () {
+      const fixedCountry = Country(
+        name: 'Custom Fixed',
+        isoCode: 'CFIX',
+        dialCode: '+998',
+        flag: '🏳️',
+        minLength: 10,
+        maxLength: 10,
+      );
+
+      // 9 digits (below minLength)
+      final f9 = PhoneNumberValue.parse(country: fixedCountry, nationalNumber: '123456789');
+      expect(f9.isLengthValid, isFalse);
+      expect(f9.isValid, isFalse);
+
+      // 10 digits (exact match)
+      final f10 = PhoneNumberValue.parse(country: fixedCountry, nationalNumber: '1234567890');
+      expect(f10.isLengthValid, isTrue);
+      expect(f10.isValid, isTrue);
+
+      // 11 digits (above maxLength)
+      final f11 = PhoneNumberValue.parse(country: fixedCountry, nationalNumber: '12345678901');
+      expect(f11.isLengthValid, isFalse);
+      expect(f11.isValid, isFalse);
+    });
   });
 }

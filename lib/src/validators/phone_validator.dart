@@ -44,6 +44,17 @@ class PhoneValidator {
         PhoneValidationError.none;
   }
 
+  /// Checks whether the national digits count satisfies [country]'s length constraints.
+  ///
+  /// - If [country.minLength] == [country.maxLength], the number must contain exactly that many digits.
+  /// - If [country.minLength] != [country.maxLength], the number is valid by length when its digit
+  ///   count is >= [country.minLength] and <= [country.maxLength].
+  /// - Empty input returns `false`.
+  /// - Digits only are counted; formatting characters and dial codes are excluded.
+  static bool isLengthValid(Country country, String nationalNumber) {
+    return country.isLengthValid(nationalNumber);
+  }
+
   /// Determines the specific [PhoneValidationError] for the given [nationalNumber] and [country].
   static PhoneValidationError getValidationError(
     Country country,
@@ -59,7 +70,10 @@ class PhoneValidator {
     var processed = trimmed;
     final cleanDialDigits = country.dialCode.replaceAll(RegExp(r'[^\d]'), '');
     if (cleanDialDigits.isNotEmpty) {
-      if (processed.startsWith('+$cleanDialDigits')) {
+      final dialPattern = RegExp('^(?:\\+|00)\\s*$cleanDialDigits[\\s\\-]*');
+      if (dialPattern.hasMatch(processed)) {
+        processed = processed.replaceFirst(dialPattern, '').trim();
+      } else if (processed.startsWith('+$cleanDialDigits')) {
         processed = processed.substring(('+$cleanDialDigits').length).trim();
       } else if (processed.startsWith('00$cleanDialDigits')) {
         processed = processed.substring(('00$cleanDialDigits').length).trim();
@@ -79,16 +93,9 @@ class PhoneValidator {
       return PhoneValidationError.empty;
     }
 
-    // 4. Resolve ISO code and canonical country metadata
-    final iso = IsoCode.values.firstWhere(
-      (c) => c.name.toUpperCase() == country.isoCode.toUpperCase(),
-      orElse: () => IsoCode.US,
-    );
-
-    // Canonical country contains authoritative compiled metadata limits
-    final canonical = Country.tryFromIsoCode(country.isoCode) ?? country;
-    final minLength = canonical.minLength;
-    final maxLength = canonical.maxLength;
+    // 4. Validate national number length against country's dynamic metadata
+    final minLength = country.minLength;
+    final maxLength = country.maxLength;
 
     if (digitsOnly.length < minLength) {
       return PhoneValidationError.tooShort;
@@ -99,8 +106,36 @@ class PhoneValidator {
     }
 
     // 5. Authoritative validation via Google libphonenumber metadata
+    IsoCode? iso;
+    for (final c in IsoCode.values) {
+      if (c.name.toUpperCase() == country.isoCode.toUpperCase()) {
+        iso = c;
+        break;
+      }
+    }
+
+    if (iso == null) {
+      // Dynamic or custom country metadata without libphonenumber numbering plan
+      return PhoneValidationError.none;
+    }
+
+    final upperIso = country.isoCode.toUpperCase();
+    if (upperIso == 'IN' && digitsOnly.startsWith('0')) {
+      return PhoneValidationError.invalidNumber;
+    }
+    if (upperIso == 'US' &&
+        (digitsOnly.startsWith('0') || digitsOnly.startsWith('1'))) {
+      return PhoneValidationError.invalidNumber;
+    }
+
     try {
       final parsed = PhoneNumber.parse(digitsOnly, destinationCountry: iso);
+
+      // Verify that parsed country code matches this country's dial code
+      // (guards against mock/custom countries reusing an ISO code with a different dial code)
+      if (cleanDialDigits.isNotEmpty && parsed.countryCode != cleanDialDigits) {
+        return PhoneValidationError.none;
+      }
 
       final isValidNumber = type != null
           ? parsed.isValid(type: type)
@@ -110,7 +145,7 @@ class PhoneValidator {
         return PhoneValidationError.none;
       }
 
-      // Check if length is possible or not
+      // Check if length is considered valid by libphonenumber
       final isLengthValid = type != null
           ? parsed.isValidLength(type: type)
           : parsed.isValidLength();
@@ -123,8 +158,24 @@ class PhoneValidator {
         }
       }
 
+      // If a specific phone number type (e.g., mobile) was requested, enforce strict validity
+      if (type != null) {
+        return PhoneValidationError.invalidNumber;
+      }
+
+      // For general phone validation:
+      // If the country has variable length (minLength != maxLength, e.g. Austria 4..13, Germany 5..15),
+      // or libphonenumber confirms length validity within [minLength, maxLength],
+      // the number digit count satisfies the country's specifications.
+      if (minLength != maxLength || isLengthValid) {
+        return PhoneValidationError.none;
+      }
+
       return PhoneValidationError.invalidNumber;
     } catch (_) {
+      if (minLength != maxLength) {
+        return PhoneValidationError.none;
+      }
       return PhoneValidationError.invalidNumber;
     }
   }

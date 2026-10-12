@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
+import '../formatters/phone_input_formatter.dart';
+import '../validators/phone_validator.dart';
 import 'country.dart';
 
 /// An immutable representation of a parsed and validated phone number.
@@ -55,7 +57,10 @@ class PhoneNumberValue {
 
     final cleanDialDigits = country.dialCode.replaceAll(RegExp(r'[^\d]'), '');
     if (cleanDialDigits.isNotEmpty) {
-      if (trimmed.startsWith('+$cleanDialDigits')) {
+      final dialPattern = RegExp('^(?:\\+|00)\\s*$cleanDialDigits[\\s\\-]*');
+      if (dialPattern.hasMatch(trimmed)) {
+        trimmed = trimmed.replaceFirst(dialPattern, '');
+      } else if (trimmed.startsWith('+$cleanDialDigits')) {
         trimmed = trimmed.substring(('+$cleanDialDigits').length);
       } else if (trimmed.startsWith('00$cleanDialDigits')) {
         trimmed = trimmed.substring(('00$cleanDialDigits').length);
@@ -93,8 +98,9 @@ class PhoneNumberValue {
 
   /// Parses a given [nationalNumber] within the context of a [country].
   ///
-  /// Extracts clean digits, performs authoritative validation against Google libphonenumber metadata,
-  /// formats according to local conventions, and produces international / E.164 output.
+  /// Extracts clean digits, performs authoritative validation against Google libphonenumber metadata
+  /// and the country's dynamic length metadata, formats according to local conventions,
+  /// and produces international / E.164 output.
   /// Optionally validates against a specific [type] (e.g. [PhoneNumberType.mobile]).
   factory PhoneNumberValue.parse({
     required Country country,
@@ -107,43 +113,25 @@ class PhoneNumberValue {
       return PhoneNumberValue.empty(country);
     }
 
-    final iso = IsoCode.values.firstWhere(
-      (c) => c.name.toUpperCase() == country.isoCode.toUpperCase(),
-      orElse: () => IsoCode.US,
-    );
+    final valid = PhoneValidator.isValid(country, cleanDigits, type: type);
 
     final cleanDialCode = country.dialCode.startsWith('+')
         ? country.dialCode
         : '+${country.dialCode}';
 
-    try {
-      final parsed = PhoneNumber.parse(cleanDigits, destinationCountry: iso);
+    final intl = valid ? '$cleanDialCode$cleanDigits' : '';
 
-      final valid = type != null
-          ? parsed.isValid(type: type)
-          : parsed.isValid();
-      final formatted = parsed.formatNsn();
+    final formatted =
+        PhoneInputFormatter.formatNationalNumber(country, cleanDigits);
 
-      final intl = valid ? '$cleanDialCode$cleanDigits' : '';
-
-      return PhoneNumberValue(
-        country: country,
-        nationalNumber: cleanDigits,
-        dialCode: cleanDialCode,
-        internationalNumber: intl,
-        isValid: valid,
-        formattedNationalNumber: formatted.isNotEmpty ? formatted : cleanDigits,
-      );
-    } catch (_) {
-      return PhoneNumberValue(
-        country: country,
-        nationalNumber: cleanDigits,
-        dialCode: cleanDialCode,
-        internationalNumber: '',
-        isValid: false,
-        formattedNationalNumber: cleanDigits,
-      );
-    }
+    return PhoneNumberValue(
+      country: country,
+      nationalNumber: cleanDigits,
+      dialCode: cleanDialCode,
+      internationalNumber: intl,
+      isValid: valid,
+      formattedNationalNumber: formatted.isNotEmpty ? formatted : cleanDigits,
+    );
   }
 
   /// Parses a raw phone string, such as a full international number (e.g. `+919876543210`)
@@ -168,9 +156,11 @@ class PhoneNumberValue {
             defaultCountry ??
             Country.unitedStates;
 
-        final valid = type != null
-            ? parsed.isValid(type: type)
-            : parsed.isValid();
+        final valid = PhoneValidator.isValid(
+          detectedCountry,
+          parsed.nsn,
+          type: type,
+        );
         final cleanDialCode = detectedCountry.dialCode;
         final intl = valid ? parsed.international : '';
 
@@ -205,6 +195,10 @@ class PhoneNumberValue {
       type: type,
     );
   }
+
+  /// Whether the national phone number digits satisfy the country's length constraints.
+  bool get isLengthValid =>
+      PhoneValidator.isLengthValid(country, nationalNumber);
 
   /// E.164 formatted representation. Returns `null` if the number is not valid.
   String? get e164 => isValid ? internationalNumber : null;

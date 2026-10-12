@@ -38,6 +38,9 @@ class PhoneAtlasController extends ValueNotifier<PhoneNumberValue> {
   /// Whether the current phone number is valid for the selected country.
   bool get isValid => value.isValid;
 
+  /// Whether the current phone number length satisfies the selected country's length constraints.
+  bool get isLengthValid => value.isLengthValid;
+
   /// The formatted national phone number.
   String? get formattedNationalNumber => value.formattedNationalNumber;
 

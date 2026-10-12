@@ -404,5 +404,186 @@ void main() {
         expect(controller.isValid, isFalse);
       },
     );
+
+    testWidgets(
+      'dynamically validates variable-length country at boundaries and out of range',
+      (tester) async {
+        const variableCountry = Country(
+          name: 'Custom Variable',
+          isoCode: 'CVAR',
+          dialCode: '+999',
+          flag: '🏳️',
+          minLength: 8,
+          maxLength: 12,
+        );
+
+        final formKey = GlobalKey<FormState>();
+        PhoneNumberValue? latestValue;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Form(
+                key: formKey,
+                child: PhoneAtlasField(
+                  initialCountry: variableCountry,
+                  isValidate: true,
+                  onChanged: (val) => latestValue = val,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // 7 digits (below minLength 8) -> invalid
+        await tester.enterText(find.byType(TextField), '1234567');
+        await tester.pumpAndSettle();
+        expect(latestValue?.isValid, isFalse);
+        expect(latestValue?.isLengthValid, isFalse);
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // 8 digits (min boundary) -> valid
+        await tester.enterText(find.byType(TextField), '12345678');
+        await tester.pumpAndSettle();
+        expect(latestValue?.isValid, isTrue);
+        expect(latestValue?.isLengthValid, isTrue);
+        expect(formKey.currentState!.validate(), isTrue);
+
+        // 10 digits (within range) -> valid
+        await tester.enterText(find.byType(TextField), '1234567890');
+        await tester.pumpAndSettle();
+        expect(latestValue?.isValid, isTrue);
+        expect(latestValue?.isLengthValid, isTrue);
+        expect(formKey.currentState!.validate(), isTrue);
+
+        // 12 digits (max boundary) -> valid
+        await tester.enterText(find.byType(TextField), '123456789012');
+        await tester.pumpAndSettle();
+        expect(latestValue?.isValid, isTrue);
+        expect(latestValue?.isLengthValid, isTrue);
+        expect(formKey.currentState!.validate(), isTrue);
+      },
+    );
+
+    testWidgets(
+      'switching from variable-length country to fixed-length country immediately updates validity and triggers onChanged',
+      (tester) async {
+        final controller = PhoneAtlasController.fromCountry(
+          Country.germany, // min: 5, max: 15
+          '30123456', // 8 digits (valid in Germany)
+        );
+        PhoneNumberValue? changedValue;
+        Country? changedCountry;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: PhoneAtlasField(
+                controller: controller,
+                isValidate: true,
+                onChanged: (val) => changedValue = val,
+                onCountryChanged: (c) => changedCountry = c,
+              ),
+            ),
+          ),
+        );
+
+        // 8 digits is valid in Germany
+        expect(controller.isValid, isTrue);
+
+        // Switch to India (fixed 10 digits)
+        await tester.tap(find.text('+49'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).last, 'India');
+        await tester.pumpAndSettle();
+
+        final indiaTile = find.widgetWithText(CountryListTile, 'India');
+        await tester.tap(indiaTile);
+        await tester.pumpAndSettle();
+
+        // Country switched to India
+        expect(changedCountry, Country.india);
+        expect(controller.country, Country.india);
+        expect(controller.nationalNumber, '30123456');
+
+        // 8 digits is below India's minLength of 10 -> immediately invalid!
+        expect(controller.isValid, isFalse);
+        expect(controller.isLengthValid, isFalse);
+        expect(changedValue?.country, Country.india);
+        expect(changedValue?.isValid, isFalse);
+
+        // Completing the 10 digits for India makes it valid
+        await tester.enterText(find.byType(TextField), '9876543210');
+        await tester.pumpAndSettle();
+
+        expect(controller.isValid, isTrue);
+        expect(controller.isLengthValid, isTrue);
+        expect(changedValue?.isValid, isTrue);
+      },
+    );
+
+    testWidgets(
+      'supports Austria (+43) variable length validation in PhoneAtlasField',
+      (tester) async {
+        final controller = PhoneAtlasController.fromCountry(Country.austria);
+        final formKey = GlobalKey<FormState>();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Form(
+                key: formKey,
+                child: PhoneAtlasField(
+                  controller: controller,
+                  isValidate: true,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Initially empty -> invalid
+        expect(controller.isValid, isFalse);
+
+        // 3 digits (less than minLength 4) -> invalid
+        await tester.enterText(find.byType(TextField), '123');
+        await tester.pumpAndSettle();
+        expect(controller.isValid, isFalse);
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // 4 digits (minLength 4) -> valid!
+        await tester.enterText(find.byType(TextField), '1234');
+        await tester.pumpAndSettle();
+        expect(controller.isValid, isTrue);
+        expect(formKey.currentState!.validate(), isTrue);
+
+        // 10 digits (e.g. 9876543210) -> valid!
+        await tester.enterText(find.byType(TextField), '9876543210');
+        await tester.pumpAndSettle();
+        expect(controller.isValid, isTrue);
+        expect(formKey.currentState!.validate(), isTrue);
+
+        // 13 digits (maxLength 13) -> valid!
+        await tester.enterText(find.byType(TextField), '1234567890123');
+        await tester.pumpAndSettle();
+        expect(controller.isValid, isTrue);
+        expect(formKey.currentState!.validate(), isTrue);
+
+        // Input formatter clamps input to maxLength (13 digits)
+        await tester.enterText(find.byType(TextField), '12345678901234');
+        await tester.pumpAndSettle();
+        expect(controller.nationalNumber.length, 13);
+        expect(controller.isValid, isTrue);
+
+        // If directly assigned an out-of-range value (> 13 digits), isValid is false
+        controller.value = PhoneNumberValue.parse(
+          country: Country.austria,
+          nationalNumber: '12345678901234',
+        );
+        expect(controller.isValid, isFalse);
+        expect(formKey.currentState!.validate(), isFalse);
+      },
+    );
   });
 }

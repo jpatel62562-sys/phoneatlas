@@ -7,6 +7,7 @@
 /// ```
 library;
 
+export 'src/data/countries.dart' show CountriesData;
 export 'src/formatters/phone_input_formatter.dart';
 export 'src/models/country.dart';
 export 'src/models/phone_number_value.dart';

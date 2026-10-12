@@ -117,6 +117,16 @@ class Country implements Comparable<Country> {
     maxLength: 15,
   );
 
+  /// Well-known country constant: Austria (+43).
+  static const Country austria = Country(
+    name: 'Austria',
+    isoCode: 'AT',
+    dialCode: '+43',
+    flag: '🇦🇹',
+    minLength: 4,
+    maxLength: 13,
+  );
+
   /// Well-known country constant: Japan (+81).
   static const Country japan = Country(
     name: 'Japan',
@@ -231,6 +241,38 @@ class Country implements Comparable<Country> {
               c.dialCode.replaceAll('+', '').contains(digitsOnly));
       return nameMatch || isoMatch || dialMatch;
     }).toList();
+  }
+
+  /// Checks whether a national phone number's digit count satisfies this country's
+  /// minimum and maximum length constraints.
+  ///
+  /// - If [minLength] == [maxLength], the number must contain exactly that many digits.
+  /// - If [minLength] != [maxLength], the number is valid by length when its digit
+  ///   count is >= [minLength] and <= [maxLength].
+  /// - Returns `false` for empty input or numbers below [minLength] / above [maxLength].
+  bool isLengthValid(String nationalNumber) {
+    var trimmed = nationalNumber.trim();
+    if (trimmed.isEmpty) return false;
+
+    final cleanDialDigits = dialCode.replaceAll(RegExp(r'[^\d]'), '');
+    if (cleanDialDigits.isNotEmpty) {
+      final dialPattern = RegExp('^(?:\\+|00)\\s*$cleanDialDigits[\\s\\-]*');
+      if (dialPattern.hasMatch(trimmed)) {
+        trimmed = trimmed.replaceFirst(dialPattern, '');
+      } else if (trimmed.startsWith('+$cleanDialDigits')) {
+        trimmed = trimmed.substring(('+$cleanDialDigits').length);
+      } else if (trimmed.startsWith('00$cleanDialDigits')) {
+        trimmed = trimmed.substring(('00$cleanDialDigits').length);
+      }
+    }
+
+    final digits = trimmed.replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.isEmpty) return false;
+
+    if (minLength == maxLength) {
+      return digits.length == minLength;
+    }
+    return digits.length >= minLength && digits.length <= maxLength;
   }
 
   @override

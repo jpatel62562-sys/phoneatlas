@@ -223,6 +223,44 @@ void main() {
         expect(PhoneValidator.isValid(Country.japan, '901234'), isFalse);
       });
 
+      test('validates Austria numbers with variable lengths (4 to 13 digits)', () {
+        final austria = Country.austria;
+        expect(austria.minLength, 4);
+        expect(austria.maxLength, 13);
+
+        // Can also lookup via CountriesData
+        final austriaFromData = CountriesData.fromIsoCode('AT');
+        expect(austriaFromData.isoCode, 'AT');
+        expect(austriaFromData.minLength, 4);
+        expect(austriaFromData.maxLength, 13);
+
+        // Valid lengths between minLength (4) and maxLength (13)
+        expect(PhoneValidator.isLengthValid(austria, '1234'), isTrue);
+        expect(PhoneValidator.isValid(austria, '1234'), isTrue);
+        expect(PhoneValidator.isValid(austria, '51234'), isTrue);
+        expect(PhoneValidator.isValid(austria, '123456'), isTrue);
+        expect(PhoneValidator.isValid(austria, '6501234'), isTrue);
+        expect(PhoneValidator.isValid(austria, '9876543210'), isTrue);
+        expect(PhoneValidator.isValid(austria, '6641234567'), isTrue);
+        expect(PhoneValidator.isValid(austria, '1234567890123'), isTrue);
+
+        // Incomplete (< 4 digits)
+        expect(PhoneValidator.isLengthValid(austria, '123'), isFalse);
+        expect(PhoneValidator.isValid(austria, '123'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(austria, '123'),
+          PhoneValidationError.tooShort,
+        );
+
+        // Exceeds max (> 13 digits)
+        expect(PhoneValidator.isLengthValid(austria, '12345678901234'), isFalse);
+        expect(PhoneValidator.isValid(austria, '12345678901234'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(austria, '12345678901234'),
+          PhoneValidationError.tooLong,
+        );
+      });
+
       test('validates France numbers', () {
         final france = Country.fromIsoCode('FR');
         expect(PhoneValidator.isValid(france, '612345678'), isTrue);
@@ -329,6 +367,144 @@ void main() {
 
         final strictValidator = PhoneValidator.valid(allowEmpty: false);
         expect(strictValidator(emptyValue), isNotNull);
+      });
+    });
+
+    group('Dynamic length validation against country minLength and maxLength', () {
+      const variableCountry = Country(
+        name: 'Variable Length Country',
+        isoCode: 'VLC',
+        dialCode: '+999',
+        flag: '🏳️',
+        minLength: 8,
+        maxLength: 12,
+      );
+
+      const fixedCountry = Country(
+        name: 'Fixed Length Country',
+        isoCode: 'FLC',
+        dialCode: '+998',
+        flag: '🏳️',
+        minLength: 10,
+        maxLength: 10,
+      );
+
+      test('validates variable-length country (minLength: 8, maxLength: 12)', () {
+        // 7 digits -> invalid (tooShort)
+        expect(PhoneValidator.isLengthValid(variableCountry, '1234567'), isFalse);
+        expect(PhoneValidator.isValid(variableCountry, '1234567'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(variableCountry, '1234567'),
+          PhoneValidationError.tooShort,
+        );
+
+        // 8 digits -> valid by length (minimum boundary)
+        expect(PhoneValidator.isLengthValid(variableCountry, '12345678'), isTrue);
+        expect(PhoneValidator.isValid(variableCountry, '12345678'), isTrue);
+        expect(
+          PhoneValidator.getValidationError(variableCountry, '12345678'),
+          PhoneValidationError.none,
+        );
+
+        // 10 digits -> valid by length (within range)
+        expect(PhoneValidator.isLengthValid(variableCountry, '1234567890'), isTrue);
+        expect(PhoneValidator.isValid(variableCountry, '1234567890'), isTrue);
+        expect(
+          PhoneValidator.getValidationError(variableCountry, '1234567890'),
+          PhoneValidationError.none,
+        );
+
+        // 12 digits -> valid by length (maximum boundary)
+        expect(PhoneValidator.isLengthValid(variableCountry, '123456789012'), isTrue);
+        expect(PhoneValidator.isValid(variableCountry, '123456789012'), isTrue);
+        expect(
+          PhoneValidator.getValidationError(variableCountry, '123456789012'),
+          PhoneValidationError.none,
+        );
+
+        // 13 digits -> invalid (tooLong)
+        expect(PhoneValidator.isLengthValid(variableCountry, '1234567890123'), isFalse);
+        expect(PhoneValidator.isValid(variableCountry, '1234567890123'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(variableCountry, '1234567890123'),
+          PhoneValidationError.tooLong,
+        );
+      });
+
+      test('validates fixed-length country (minLength: 10, maxLength: 10)', () {
+        // 9 digits -> invalid (tooShort)
+        expect(PhoneValidator.isLengthValid(fixedCountry, '123456789'), isFalse);
+        expect(PhoneValidator.isValid(fixedCountry, '123456789'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(fixedCountry, '123456789'),
+          PhoneValidationError.tooShort,
+        );
+
+        // 10 digits -> valid by length (exact match)
+        expect(PhoneValidator.isLengthValid(fixedCountry, '1234567890'), isTrue);
+        expect(PhoneValidator.isValid(fixedCountry, '1234567890'), isTrue);
+        expect(
+          PhoneValidator.getValidationError(fixedCountry, '1234567890'),
+          PhoneValidationError.none,
+        );
+
+        // 11 digits -> invalid (tooLong)
+        expect(PhoneValidator.isLengthValid(fixedCountry, '12345678901'), isFalse);
+        expect(PhoneValidator.isValid(fixedCountry, '12345678901'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(fixedCountry, '12345678901'),
+          PhoneValidationError.tooLong,
+        );
+      });
+
+      test('handles empty input separately so length metadata does not make it valid', () {
+        expect(PhoneValidator.isLengthValid(variableCountry, ''), isFalse);
+        expect(PhoneValidator.isValid(variableCountry, ''), isFalse);
+        expect(
+          PhoneValidator.getValidationError(variableCountry, ''),
+          PhoneValidationError.empty,
+        );
+
+        expect(PhoneValidator.isLengthValid(fixedCountry, '   '), isFalse);
+        expect(PhoneValidator.isValid(fixedCountry, '   '), isFalse);
+        expect(
+          PhoneValidator.getValidationError(fixedCountry, '   '),
+          PhoneValidationError.empty,
+        );
+      });
+
+      test('counts national phone number digits only, excluding dial code and formatting', () {
+        // +999 1234-5678 has 8 digits (valid for variableCountry)
+        expect(PhoneValidator.isLengthValid(variableCountry, '+999 1234-5678'), isTrue);
+        expect(PhoneValidator.isValid(variableCountry, '+999 1234-5678'), isTrue);
+
+        // +998 (123) 456-7890 has 10 digits (valid for fixedCountry)
+        expect(PhoneValidator.isLengthValid(fixedCountry, '+998 (123) 456-7890'), isTrue);
+        expect(PhoneValidator.isValid(fixedCountry, '+998 (123) 456-7890'), isTrue);
+      });
+
+      test('retains numbering-plan prefix checks for known countries within length range', () {
+        // India (minLength: 10, maxLength: 10)
+        // 10 digits starting with 0 is invalid prefix in India numbering plan
+        expect(PhoneValidator.isLengthValid(Country.india, '0876543210'), isTrue);
+        expect(PhoneValidator.isValid(Country.india, '0876543210'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(Country.india, '0876543210'),
+          PhoneValidationError.invalidNumber,
+        );
+
+        // 10 digits starting with 9 is valid
+        expect(PhoneValidator.isLengthValid(Country.india, '9876543210'), isTrue);
+        expect(PhoneValidator.isValid(Country.india, '9876543210'), isTrue);
+
+        // US (minLength: 10, maxLength: 10)
+        // 10 digits with invalid area code 002
+        expect(PhoneValidator.isLengthValid(Country.unitedStates, '0025550123'), isTrue);
+        expect(PhoneValidator.isValid(Country.unitedStates, '0025550123'), isFalse);
+
+        // 10 digits with valid NANP format
+        expect(PhoneValidator.isLengthValid(Country.unitedStates, '2025550123'), isTrue);
+        expect(PhoneValidator.isValid(Country.unitedStates, '2025550123'), isTrue);
       });
     });
   });

@@ -179,11 +179,23 @@ class _PhoneAtlasFieldState extends FormFieldState<PhoneNumberValue> {
     final initialCountry = _effectiveController.country;
     final initialDigits = _effectiveController.nationalNumber;
 
-    if (!_field.isValidate && !_effectiveController.isValid) {
-      _effectiveController.value = PhoneNumberValue.unvalidated(
-        country: initialCountry,
-        nationalNumber: initialDigits,
-      );
+    if (_field.isValidate) {
+      if (initialDigits.isNotEmpty) {
+        final reevaluated = PhoneNumberValue.parse(
+          country: initialCountry,
+          nationalNumber: initialDigits,
+        );
+        if (_effectiveController.value != reevaluated) {
+          _effectiveController.value = reevaluated;
+        }
+      }
+    } else {
+      if (!_effectiveController.isValid) {
+        _effectiveController.value = PhoneNumberValue.unvalidated(
+          country: initialCountry,
+          nationalNumber: initialDigits,
+        );
+      }
     }
 
     _formatter = PhoneInputFormatter(
@@ -250,6 +262,7 @@ class _PhoneAtlasFieldState extends FormFieldState<PhoneNumberValue> {
         if (!mounted) return;
         _effectiveController.value = updated;
         didChange(updated);
+        _field.onChanged?.call(updated);
       });
     }
   }
@@ -284,7 +297,14 @@ class _PhoneAtlasFieldState extends FormFieldState<PhoneNumberValue> {
   }
 
   void _handleControllerChanged() {
-    final currentPhone = _effectiveController.value;
+    var currentPhone = _effectiveController.value;
+    if (!_field.isValidate && !currentPhone.isValid) {
+      currentPhone = PhoneNumberValue.unvalidated(
+        country: currentPhone.country,
+        nationalNumber: currentPhone.nationalNumber,
+      );
+      _effectiveController.value = currentPhone;
+    }
     if (value != currentPhone) {
       didChange(currentPhone);
     }

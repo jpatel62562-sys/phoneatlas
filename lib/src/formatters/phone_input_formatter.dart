@@ -37,8 +37,11 @@ class PhoneInputFormatter extends TextInputFormatter {
     var processedNewText = newValue.text;
     final cleanDialDigits = country.dialCode.replaceAll(RegExp(r'[^\d]'), '');
     if (cleanDialDigits.isNotEmpty) {
+      final dialPattern = RegExp('^(?:\\+|00)\\s*$cleanDialDigits[\\s\\-]*');
       final trimmedNew = newValue.text.trim();
-      if (trimmedNew.startsWith('+$cleanDialDigits')) {
+      if (dialPattern.hasMatch(trimmedNew)) {
+        processedNewText = trimmedNew.replaceFirst(dialPattern, '');
+      } else if (trimmedNew.startsWith('+$cleanDialDigits')) {
         processedNewText = trimmedNew.substring(('+$cleanDialDigits').length);
       } else if (trimmedNew.startsWith('00$cleanDialDigits')) {
         processedNewText = trimmedNew.substring(('00$cleanDialDigits').length);
