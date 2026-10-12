@@ -83,7 +83,7 @@ class Country implements Comparable<Country> {
     isoCode: 'GB',
     dialCode: '+44',
     flag: '🇬🇧',
-    minLength: 9,
+    minLength: 10,
     maxLength: 10,
   );
 
@@ -113,8 +113,8 @@ class Country implements Comparable<Country> {
     isoCode: 'DE',
     dialCode: '+49',
     flag: '🇩🇪',
-    minLength: 5,
-    maxLength: 15,
+    minLength: 10,
+    maxLength: 11,
   );
 
   /// Well-known country constant: Austria (+43).
@@ -123,7 +123,7 @@ class Country implements Comparable<Country> {
     isoCode: 'AT',
     dialCode: '+43',
     flag: '🇦🇹',
-    minLength: 4,
+    minLength: 7,
     maxLength: 13,
   );
 
@@ -133,7 +133,7 @@ class Country implements Comparable<Country> {
     isoCode: 'JP',
     dialCode: '+81',
     flag: '🇯🇵',
-    minLength: 9,
+    minLength: 10,
     maxLength: 10,
   );
 
@@ -143,7 +143,7 @@ class Country implements Comparable<Country> {
     isoCode: 'BR',
     dialCode: '+55',
     flag: '🇧🇷',
-    minLength: 10,
+    minLength: 11,
     maxLength: 11,
   );
 

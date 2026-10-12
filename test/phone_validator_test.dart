@@ -198,11 +198,20 @@ void main() {
         );
       });
 
-      test('validates Germany numbers with variable lengths', () {
-        // 8 digits
-        expect(PhoneValidator.isValid(Country.germany, '30123456'), isTrue);
-        // 11 digits
+      test('validates Germany mobile numbers (10 to 11 digits)', () {
+        expect(Country.germany.minLength, 10);
+        expect(Country.germany.maxLength, 11);
+
+        // 10 digits (valid mobile)
+        expect(PhoneValidator.isValid(Country.germany, '1512345678'), isTrue);
+        // 11 digits (valid mobile)
         expect(PhoneValidator.isValid(Country.germany, '15123456789'), isTrue);
+        // 8 digits (fixed line, not mobile NSN)
+        expect(PhoneValidator.isValid(Country.germany, '30123456'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(Country.germany, '30123456'),
+          PhoneValidationError.tooShort,
+        );
         // Incomplete
         expect(PhoneValidator.isValid(Country.germany, '12'), isFalse);
         expect(
@@ -223,28 +232,31 @@ void main() {
         expect(PhoneValidator.isValid(Country.japan, '901234'), isFalse);
       });
 
-      test('validates Austria numbers with variable lengths (4 to 13 digits)', () {
+      test('validates Austria mobile numbers (7 to 13 digits)', () {
         final austria = Country.austria;
-        expect(austria.minLength, 4);
+        expect(austria.minLength, 7);
         expect(austria.maxLength, 13);
 
         // Can also lookup via CountriesData
         final austriaFromData = CountriesData.fromIsoCode('AT');
         expect(austriaFromData.isoCode, 'AT');
-        expect(austriaFromData.minLength, 4);
+        expect(austriaFromData.minLength, 7);
         expect(austriaFromData.maxLength, 13);
 
-        // Valid lengths between minLength (4) and maxLength (13)
-        expect(PhoneValidator.isLengthValid(austria, '1234'), isTrue);
-        expect(PhoneValidator.isValid(austria, '1234'), isTrue);
-        expect(PhoneValidator.isValid(austria, '51234'), isTrue);
-        expect(PhoneValidator.isValid(austria, '123456'), isTrue);
+        // Valid mobile lengths between minLength (7) and maxLength (13)
+        expect(PhoneValidator.isLengthValid(austria, '6501234'), isTrue);
         expect(PhoneValidator.isValid(austria, '6501234'), isTrue);
         expect(PhoneValidator.isValid(austria, '9876543210'), isTrue);
         expect(PhoneValidator.isValid(austria, '6641234567'), isTrue);
         expect(PhoneValidator.isValid(austria, '1234567890123'), isTrue);
 
-        // Incomplete (< 4 digits)
+        // Incomplete (< 7 digits)
+        expect(PhoneValidator.isLengthValid(austria, '1234'), isFalse);
+        expect(PhoneValidator.isValid(austria, '1234'), isFalse);
+        expect(
+          PhoneValidator.getValidationError(austria, '1234'),
+          PhoneValidationError.tooShort,
+        );
         expect(PhoneValidator.isLengthValid(austria, '123'), isFalse);
         expect(PhoneValidator.isValid(austria, '123'), isFalse);
         expect(

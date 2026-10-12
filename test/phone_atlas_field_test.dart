@@ -469,8 +469,8 @@ void main() {
       'switching from variable-length country to fixed-length country immediately updates validity and triggers onChanged',
       (tester) async {
         final controller = PhoneAtlasController.fromCountry(
-          Country.germany, // min: 5, max: 15
-          '30123456', // 8 digits (valid in Germany)
+          Country.germany, // min: 10, max: 11
+          '1512345678', // 10 digits (valid in Germany)
         );
         PhoneNumberValue? changedValue;
         Country? changedCountry;
@@ -488,7 +488,7 @@ void main() {
           ),
         );
 
-        // 8 digits is valid in Germany
+        // 10 digits is valid in Germany
         expect(controller.isValid, isTrue);
 
         // Switch to India (fixed 10 digits)
@@ -505,26 +505,26 @@ void main() {
         // Country switched to India
         expect(changedCountry, Country.india);
         expect(controller.country, Country.india);
-        expect(controller.nationalNumber, '30123456');
+        expect(controller.nationalNumber, '1512345678');
 
-        // 8 digits is below India's minLength of 10 -> immediately invalid!
-        expect(controller.isValid, isFalse);
-        expect(controller.isLengthValid, isFalse);
-        expect(changedValue?.country, Country.india);
-        expect(changedValue?.isValid, isFalse);
-
-        // Completing the 10 digits for India makes it valid
-        await tester.enterText(find.byType(TextField), '9876543210');
-        await tester.pumpAndSettle();
-
+        // 1512345678 is 10 digits for India
         expect(controller.isValid, isTrue);
         expect(controller.isLengthValid, isTrue);
+        expect(changedValue?.country, Country.india);
         expect(changedValue?.isValid, isTrue);
+
+        // Deleting digits to 8 digits -> invalid
+        await tester.enterText(find.byType(TextField), '98765432');
+        await tester.pumpAndSettle();
+
+        expect(controller.isValid, isFalse);
+        expect(controller.isLengthValid, isFalse);
+        expect(changedValue?.isValid, isFalse);
       },
     );
 
     testWidgets(
-      'supports Austria (+43) variable length validation in PhoneAtlasField',
+      'supports Austria (+43) mobile variable length validation (7 to 13 digits) in PhoneAtlasField',
       (tester) async {
         final controller = PhoneAtlasController.fromCountry(Country.austria);
         final formKey = GlobalKey<FormState>();
@@ -546,14 +546,14 @@ void main() {
         // Initially empty -> invalid
         expect(controller.isValid, isFalse);
 
-        // 3 digits (less than minLength 4) -> invalid
-        await tester.enterText(find.byType(TextField), '123');
+        // 6 digits (less than mobile minLength 7) -> invalid
+        await tester.enterText(find.byType(TextField), '123456');
         await tester.pumpAndSettle();
         expect(controller.isValid, isFalse);
         expect(formKey.currentState!.validate(), isFalse);
 
-        // 4 digits (minLength 4) -> valid!
-        await tester.enterText(find.byType(TextField), '1234');
+        // 7 digits (mobile minLength 7) -> valid!
+        await tester.enterText(find.byType(TextField), '6501234');
         await tester.pumpAndSettle();
         expect(controller.isValid, isTrue);
         expect(formKey.currentState!.validate(), isTrue);
