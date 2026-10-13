@@ -1,6 +1,6 @@
 name: phoneatlas
 description: A production-quality, lightweight Flutter package for international phone number input, validation, formatting, and country selection with Unicode flag support.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/jpatel62562-sys/phoneatlas
 repository: https://github.com/jpatel62562-sys/phoneatlas
 issue_tracker: https://github.com/jpatel62562-sys/phoneatlas/issues

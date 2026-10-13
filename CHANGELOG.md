@@ -1,4 +1,4 @@
-## 0.1.0
+## 0.1.1
 
 - Initial production-quality release of `phoneatlas`.
 - Support for 245+ countries and territories with ISO 3166-1 alpha-2 codes.
